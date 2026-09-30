@@ -1,0 +1,35 @@
+import os
+from flask import Flask, request, send_from_directory, jsonify
+
+app = Flask(__name__)
+
+# Hapa ndipo mafaili yako (picha/video) zitakapohifadhiwa kwenye kompyuta yako salama
+UPLOAD_FOLDER = 'uploads'
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+# 1. Geti la kupokea na kupakia mafaili (Upload Video/Images)
+@app.route('/upload', methods=['POST'])
+def upload_file():
+    if 'file' not in request.files:
+        return jsonify({"error": "Hakuna faili lililopatikana"}), 400
+    
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"error": "Jina la faili halijasomeka"}), 400
+    
+    # Hifadhi faili kwenye folda maalum ya kompyuta yako
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+    file.save(file_path)
+    
+    return jsonify({"success": True, "message": f"Faili '{file.filename}' limeingia salama kupitia geti!"})
+
+# 2. Geti la kurusha mafaili kama "bomba la maji" kwenda kwa mteja
+@app.route('/stream/<filename>', methods=['GET'])
+def stream_file(filename):
+    # Inatuma faili moja kwa moja kwenda kwenye kioo cha mteja bila kulihifadhi huko
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
+if __name__ == '__main__':
+    # Tunafungua geti kwenye port 5000 ya kompyuta yako
+    app.run(host='0.0.0.0', port=5000, debug=True)
